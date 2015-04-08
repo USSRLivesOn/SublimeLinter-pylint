@@ -21,7 +21,7 @@ class Pylint(PythonLinter):
     syntax = 'python'
     cmd = (
         'pylint@python',
-        '--msg-template=\'{line}:{column}:{msg_id}: {msg}\'',
+        '--msg-template=\'{line}:{column}:{msg_id}:{symbol}: {msg}\'',
         '--module-rgx=.*',  # don't check the module name
         '--reports=n',      # remove tables
         '--persistent=n',   # don't save the old score (no sense for temp)
@@ -31,7 +31,8 @@ class Pylint(PythonLinter):
     version_requirement = '>= 1.0'
     regex = (
         r'^(?P<line>\d+):(?P<col>\d+):'
-        r'(?P<code>(?:(?P<error>[FE])|(?P<warning>[CIWR]))\d+): '
+        r'(?P<code>(?:(?P<error>[FE])|(?P<warning>[CIWR]))\d+):'
+        r'(?P<message_id>[a-z\-]+): '
         r'(?P<message>.*)'
     )
     multiline = True
@@ -50,6 +51,7 @@ class Pylint(PythonLinter):
     defaults = {
         # allows the user to say whether he wants to see the error code
         'show-codes': False,
+        'show-message-ids': False,
         # paths to be added to sys.path through --init-hook
         'paths': [],
         # options for pylint
@@ -277,6 +279,7 @@ class Pylint(PythonLinter):
         match, line, col, error, warning, message, near = super().split_match(match)
 
         show_codes = self.get_merged_settings()['show-codes']
+        show_message_ids = self.get_merged_settings()['show-message-ids']
 
         if match:
             code = match.group('code')
@@ -305,6 +308,9 @@ class Pylint(PythonLinter):
                 if col == 0:
                     col = None
 
+            message_id = match.group('message_id')
+            if show_message_ids:
+                message = '[{}]'.format(message_id) + ' ' + message
             if show_codes:
                 message = code + ' ' + message
 
